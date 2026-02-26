@@ -7,8 +7,8 @@
 // dont change cuz we rely on wrap around of tape_idx(uint16_t)
 #define TAPE_SIZE 65536
 
-char *get_ops(FILE *f) {
-  if (!f) {
+char *get_ops(FILE *f, size_t *ops_len) {
+  if (!f || !ops_len) {
     return NULL;
   }
 
@@ -50,11 +50,11 @@ char *get_ops(FILE *f) {
   }
 
   ops[idx] = '\0';
+  *ops_len = idx;
   return ops;
 }
 
-int64_t *calculate_offsets(const char *code) {
-  size_t len = strlen(code);
+int64_t *calculate_offsets(const char *code, size_t len) {
 
   int64_t *offsets = calloc(len, sizeof(int64_t));
   if (!offsets) {
@@ -62,13 +62,7 @@ int64_t *calculate_offsets(const char *code) {
     return NULL;
   }
 
-  size_t *stack = malloc(len * sizeof *stack);
-  if (!stack) {
-    perror("malloc");
-    free(offsets);
-    return NULL;
-  }
-
+  size_t stack[len];
   size_t stack_top = 0;
 
   for (size_t i = 0; i < len; i++) {
@@ -78,7 +72,6 @@ int64_t *calculate_offsets(const char *code) {
     } else if (code[i] == ']') {
       if (stack_top == 0) {
         fprintf(stderr, "Error: unmatched ']'\n");
-        free(stack);
         free(offsets);
         return NULL;
       }
@@ -105,23 +98,21 @@ int64_t *calculate_offsets(const char *code) {
 
   if (stack_top != 0) {
     fprintf(stderr, "Error: unmatched '['\n");
-    free(stack);
     free(offsets);
     return NULL;
   }
 
-  free(stack);
   return offsets;
 }
 
-int execute_code(char *code) {
+int execute_code(char *code, size_t len) {
   uint8_t *tape = calloc(TAPE_SIZE, sizeof(uint8_t));
   if (!tape) {
     perror("calloc");
     return 1;
   }
 
-  int64_t *offsets = calculate_offsets(code);
+  int64_t *offsets = calculate_offsets(code, len);
   if (!offsets) {
     free(tape);
     return 1;
@@ -129,7 +120,7 @@ int execute_code(char *code) {
 
   uint16_t tape_idx = 0;
 
-  for (size_t code_idx = 0; code[code_idx] != '\0';) {
+  for (size_t code_idx = 0; code_idx < len;) {
 
     switch (code[code_idx]) {
 
@@ -216,14 +207,15 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  char *code = get_ops(f);
+  size_t code_len = 0;
+  char *code = get_ops(f, &code_len);
   fclose(f);
 
   if (!code) {
     return EXIT_FAILURE;
   }
 
-  int res = execute_code(code);
+  int res = execute_code(code, code_len);
 
   free(code);
   return res;
