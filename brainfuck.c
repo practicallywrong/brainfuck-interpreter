@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // dont change cuz we rely on wrap around of tape_idx(uint16_t)
 #define TAPE_SIZE 65536
@@ -161,12 +162,13 @@ int execute_code(char *code) {
     }
 
     case '.': {
-      putchar(tape[tape_idx]);
+      write(STDOUT_FILENO, &tape[tape_idx], 1);
       code_idx++;
       break;
     }
 
     case ',': {
+      fflush(stdout);
       int input = getchar();
       tape[tape_idx] = (input == EOF) ? 0 : (uint8_t)input;
       code_idx++;
