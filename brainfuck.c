@@ -80,8 +80,8 @@ int64_t *calculate_offsets(const char *code, size_t len) {
       offsets[open] = i;
       offsets[i] = open;
 
-    } else if (code[i] == '>' || code[i] == '<' ||
-               code[i] == '+' || code[i] == '-') {
+    } else if (code[i] == '>' || code[i] == '<' || code[i] == '+' ||
+               code[i] == '-') {
 
       char op = code[i];
       int64_t count = 0;
